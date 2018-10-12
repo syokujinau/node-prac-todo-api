@@ -37,7 +37,7 @@ MongoClient.connect('mongodb://localhost:27017/TodoApp', (err, db) => {
     })
 
     db.collection('Users').insertOne({
-        name: '宇謙',
+        name: 'yc',
         age: 22,
         location: 'Taipei'
     }, (err, result) => {
@@ -176,3 +176,173 @@ MongoClient.connect('mongodb://localhost:27017/TodoApp', (err, db) => {
     db.close();
 });
 ```
+
+## Deleting Documents
+
+### delete many
+
+刪除所有符合{text: 'Eat launch'}的資料
+```js
+db.collection('Todos').deleteMany({text: 'Eat launch'}).then((result) => {
+        console.log(result.result) //{ n: 0, ok: 1 }代表ok，刪除n個，因為沒這筆所以刪除0個
+    })
+```
+
+### delete one
+
+刪除第一筆符合{text: 'Eat dinner'}的資料
+```js
+db.collection('Todos').deleteOne({text: 'Eat dinneer'}).then((result) => {
+        console.log(result.result) //{ n: 1, ok: 1 }代表ok，刪除1個
+    })
+```
+
+### find One And Delete
+
+查詢一筆並且刪除
+
+```js
+db.collection('Todos').findOneAndDelete({completed: false}).then((result) => {
+    console.log(result)
+})
+```
+
+## Updating Data
+
+[findOneAndUpdate API](https://docs.mongodb.com/manual/reference/method/db.collection.findOneAndUpdate/)
+
+> must use [update operator](https://docs.mongodb.com/manual/reference/operator/update/set/#up._S_set) to change data
+> Update有很多做法，比如說用$inc可以讓特定key的value增加數值，但一定要透過[Field Update Operator](https://docs.mongodb.com/manual/reference/operator/update-field/)
+
+```js=
+const {MongoClient, ObjectID} = require('mongodb');
+
+
+MongoClient.connect('mongodb://localhost:27017/TodoApp', (err, db) => {
+    if (err) {
+        return console.log('Unable to connect to MongoDB server');
+    }
+    console.log('Connected to MongoDB server');
+
+    db.collection('Todos').findOneAndUpdate({
+        _id: new ObjectID('5bbac43cb781073f60d69fc2')
+    }, {
+        $set: {
+            completed: true
+        }
+    }, {
+        returnOriginal: false //回傳更新後的資料
+    }).then((result) => {
+        console.log(result);
+    })
+    
+
+    db.close();
+});
+```
+
+## mongoose ODM
+
+> Node.js 專用的 MongoDB ODM，類似SQL資料庫 schema-based 的方式，來操作MongoDB，model的第二個參數就是schema
+
+```js=
+var mongoose = require('mongoose');
+
+mongoose.Promise = global.Promise;
+mongoose.connect('mongodb://localhost:27017/TodoApp');
+
+var Todo = mongoose.model('Todo', {
+  text: {
+    type: String
+  },
+  completed: {
+    type: Boolean
+  },
+  completedAt: {
+    type: Number
+  }
+});
+
+// var Todo1 = new Todo({
+//   text: '買菜'
+// });
+//
+// Todo1.save().then((doc) => {
+//   console.log('Saved todo', doc);
+// }, (e) => {
+//   console.log('Unable to save todo')
+// });
+
+var Todo2 = new Todo({
+  text: '煮飯',
+  completed: true,
+  completedAt: 123
+});
+
+Todo2.save().then((doc) => {
+  console.log(JSON.stringify(doc, undefined, 2));
+}, (e) => {
+  console.log('Unable to save', e);
+});
+
+```
+
+## Mongoose Validation
+
+用於定義必填欄位、最小字串長度、trim(空格設1)、給予default value...etc
+* [Mongoose v5.3.2: Validation](https://mongoosejs.com/docs/validation.html) 
+
+```js=
+var Todo = mongoose.model('Todo', {
+  text: {
+    type: String,
+    required: true, //必填
+    minlength: 1,   //字串長度至少1
+    trim: true      //刪多餘空格
+  },
+  completed: {
+    type: Boolean,
+    default: false  //預設值為false
+  },
+  completedAt: {
+    type: Number,
+    default: null   //預設值為null
+  }
+});
+
+var todo1 = new Todo({
+    text: '吃飯' //其他欄位將有default值
+})
+
+todo1.save().then((doc) => {
+    console.log('todo saved', doc);
+}, (e) => {
+    console.log('Unable to save todo', e);
+})
+```
+
+```js= 
+var User = mongoose.model('User', {
+    email: {
+        type: String,
+        required: true,
+        trim: true,
+        minlength: 1
+    }
+})
+
+var user1 = new User({
+    email: 'abc123@gmail.com'
+})
+
+user1.save().then((doc) => {
+    console.log('User saved', doc);
+}, (e) => {
+    console.log('Unable to save user', e);
+})
+```
+
+## 檔案結構化RESTful API
+
+see repo
+
